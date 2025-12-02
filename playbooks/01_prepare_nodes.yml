@@ -56,23 +56,23 @@
           deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
         mode: '0644'
 
-    - name: Install containerd
+    - name: Install containerd runtime
       package:
-        name: containerd.io
+        name: containerd
         state: present
 
 
-    - name: Configure containerd
-      ansible.builtin.copy:
-        content: |
-          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-            runtime_type = "io.containerd.runc.v2"
-            [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-              SystemdCgroup = true
-        dest: /etc/containerd/config.toml
-        owner: root
-        group: root
-        mode: 0644
+    - name: Generate default containerd config
+      ansible.builtin.shell: |
+        containerd config default > /etc/containerd/config.toml
+      args:
+        creates: /etc/containerd/config.toml
+
+    - name: Enable SystemdCgroup in containerd
+      ansible.builtin.replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
 
 
     - name: Restart and enable containerd
