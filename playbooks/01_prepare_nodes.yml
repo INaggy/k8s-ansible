@@ -43,16 +43,18 @@
 
 
     - name: Add Docker GPG key
-      ansible.builtin.apt_key:
+      ansible.builtin.get_url:
         url: https://download.docker.com/linux/debian/gpg
-        state: present
+        dest: /usr/share/keyrings/docker.gpg
+        mode: '0644'
 
 
-    - name: Add Docker repository
-      ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
-        state: present
-
+    - name: Add Docker APT repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
+        mode: '0644'
 
     - name: Install containerd
       package:
