@@ -1,0 +1,13 @@
+---
+- name: Install Calico
+  hosts: k8s_master
+  become: yes
+  tasks:
+    - name: Install Calico manifest
+      ansible.builtin.shell: |
+        kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+
+
+    - name: Wait for calico pods
+      ansible.builtin.shell: |
+        kubectl wait --for=condition=ready pod -l k8s-app=calico-node -n kube-system --timeout=300s

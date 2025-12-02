@@ -1,0 +1,26 @@
+---
+- name: Setup kubectl on control node
+  hosts: k8s_master
+  become: yes
+  tasks:
+    - name: Fetch kubeconfig
+      ansible.builtin.fetch:
+        src: /home/dukhovskoy/.kube/config
+        dest: /home/dukhovskoy/.kube/config
+        flat: yes
+      delegate_to: ansible-control
+
+
+    - name: Fix API endpoint
+      ansible.builtin.replace:
+        path: /home/dukhovskoy/.kube/config
+        regexp: 'server: https://127.0.0.1:6443'
+        replace: "server: https://{{ hostvars['k8s-master-01']['ansible_default_ipv4']['address'] }}:6443"
+      delegate_to: ansible-control
+
+
+    - name: Install kubectl
+      package:
+        name: kubectl
+        state: present
+      delegate_to: ansible-control

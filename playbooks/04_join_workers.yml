@@ -1,0 +1,16 @@
+---
+- name: Join workers to cluster
+  hosts: k8s_workers
+  become: yes
+  tasks:
+    - name: Read join command
+      ansible.builtin.slurp:
+        src: /tmp/k8s_join_command.txt
+      register: join_file
+      delegate_to: k8s-master-01
+
+
+    - name: Join command
+      ansible.builtin.shell: "{{ join_file.content | b64decode }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf
