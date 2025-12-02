@@ -96,14 +96,18 @@
         mode: '0644'
 
 
-    - name: Install kubeadm, kubelet, kubectl
-      package:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+
+    - name: Install Kubernetes components
+      ansible.builtin.package:
         name:
-          - kubelet={{ k8s_version }}-00
-          - kubeadm={{ k8s_version }}-00
-          - kubectl={{ k8s_version }}-00
+          - kubelet
+          - kubeadm
+          - kubectl
         state: present
-        allow_downgrade: yes
 
 
     - name: Hold Kubernetes packages
