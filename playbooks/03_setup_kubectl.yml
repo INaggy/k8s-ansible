@@ -3,12 +3,6 @@
   hosts: k8s_master
   become: yes
   tasks:
-    - name: Fetch kubeconfig
-      ansible.builtin.fetch:
-        src: /home/dukhovskoy/.kube/config
-        dest: /home/dukhovskoy/.kube/config
-        flat: yes
-
 
     - name: Fix API endpoint
       ansible.builtin.replace:
