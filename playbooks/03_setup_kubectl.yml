@@ -1,17 +1,15 @@
 ---
-- name: Setup kubectl on control node
+- name: Generate join command
   hosts: k8s_master
   become: yes
+
   tasks:
+    - name: Create join command
+      shell: kubeadm token create --print-join-command
+      register: join_cmd
 
-    - name: Fix API endpoint
-      ansible.builtin.replace:
-        path: /home/dukhovskoy/.kube/config
-        regexp: 'server: https://127.0.0.1:6443'
-        replace: "server: https://{{ hostvars['k8s-master-01']['ansible_default_ipv4']['address'] }}:6443"
-
-
-    - name: Install kubectl
-      package:
-        name: kubectl
-        state: present
+    - name: Save join script
+      copy:
+        dest: /tmp/k8s_join.sh
+        mode: '0755'
+        content: "{{ join_cmd.stdout }} --cri-socket unix:///run/containerd/containerd.sock"
