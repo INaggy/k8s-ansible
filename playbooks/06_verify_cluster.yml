@@ -1,13 +1,13 @@
 ---
-- name: Verify Kubernetes cluster
+- name: Verify cluster
   hosts: k8s_master
   become: yes
+
   tasks:
-    - name: Create test namespace
-      ansible.builtin.shell: |
-        kubectl create namespace test --dry-run=client -o yaml | kubectl apply -f -
+    - name: Show nodes
+      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf get nodes -o wide
+      register: nodes
 
+    - debug:
+        msg: "{{ nodes.stdout }}"
 
-    - name: Deploy nginx test app
-      ansible.builtin.shell: |
-        kubectl create deployment nginx-test --image=nginx:alpine -n test
