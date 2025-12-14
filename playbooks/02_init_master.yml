@@ -6,37 +6,49 @@
     pod_network_cidr: "10.244.0.0/16"
 
   tasks:
-    - name: Check admin.conf
+    - name: Check if admin.conf already exists
       stat:
         path: /etc/kubernetes/admin.conf
       register: adminconf
 
-    - name: Reset broken cluster if exists
-      shell: kubeadm reset -f
-      when: adminconf.stat.exists
-
-    - name: Init cluster
+    - name: Initialize Kubernetes cluster (kubeadm init)
       shell: |
         kubeadm init \
           --pod-network-cidr={{ pod_network_cidr }} \
           --apiserver-advertise-address={{ ansible_default_ipv4.address }} \
           --cri-socket unix:///run/containerd/containerd.sock
+      register: kubeadm_init
+      args:
+        creates: /etc/kubernetes/admin.conf
       when: not adminconf.stat.exists
+
+    - name: Re-check admin.conf after kubeadm init
+      stat:
+        path: /etc/kubernetes/admin.conf
+      register: adminconf_after
+
+    - name: Fail if kubeadm init did not create admin.conf
+      fail:
+        msg: "kubeadm init failed: /etc/kubernetes/admin.conf was not created"
+      when: not adminconf_after.stat.exists
 
     - name: Prepare kubeconfig for root
       shell: |
         mkdir -p /root/.kube
         cp -f /etc/kubernetes/admin.conf /root/.kube/config
+        chown root:root /root/.kube/config
 
-    - name: Wait for API server
+    - name: Wait for API server port 6443
       wait_for:
         host: "{{ ansible_default_ipv4.address }}"
         port: 6443
         timeout: 900
 
-    - name: Wait for readyz
-      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw='/readyz'
+    - name: Wait for Kubernetes API to be ready (/readyz)
+      shell: |
+        kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw='/readyz'
+      register: readyz
       retries: 60
       delay: 5
       until: readyz.rc == 0
-      register: readyz
+      changed_when: false
