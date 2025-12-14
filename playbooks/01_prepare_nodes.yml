@@ -1,4 +1,14 @@
 ---
+- name: Remove old Kubernetes apt repository (apt.kubernetes.io)
+  file:
+    path: /etc/apt/sources.list.d/kubernetes.list
+    state: absent
+
+- name: Remove old Kubernetes apt keyring
+  file:
+    path: /usr/share/keyrings/kubernetes-apt-keyring.gpg
+    state: absent
+
 - name: Prepare all Kubernetes nodes
   hosts: k8s_all
   become: yes
