@@ -2,12 +2,18 @@
 - name: Install Calico
   hosts: k8s_master
   become: yes
+
   tasks:
-    - name: Install Calico manifest
-      ansible.builtin.shell: |
-        kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+    - name: Wait for API ready
+      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw='/readyz'
+      retries: 60
+      delay: 5
+      until: readyz.rc == 0
+      register: readyz
 
-
-    - name: Wait for calico pods
-      ansible.builtin.shell: |
-        kubectl wait --for=condition=ready pod -l k8s-app=calico-node -n kube-system --timeout=300s
+    - name: Apply Calico
+      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+      retries: 10
+      delay: 8
+      register: calico
+      until: calico.rc == 0
