@@ -1,19 +1,30 @@
 ---
-- name: Install Calico
+- name: Install Calico CNI
   hosts: k8s_master
   become: yes
 
-  tasks:
-    - name: Wait for API ready
-      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf get --raw='/readyz'
-      retries: 60
-      delay: 5
-      until: readyz.rc == 0
-      register: readyz
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
 
-    - name: Apply Calico
-      shell: kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+  tasks:
+    - name: Wait for kube-apiserver port
+      wait_for:
+        host: 127.0.0.1
+        port: 6443
+        timeout: 300
+
+    - name: Apply Calico manifest
+      shell: |
+        kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
+      register: calico_apply
       retries: 10
-      delay: 8
-      register: calico
-      until: calico.rc == 0
+      delay: 15
+      until: calico_apply.rc == 0
+
+    - name: Wait for Calico pods to be created
+      shell: |
+        kubectl get pods -n kube-system | grep calico
+      register: calico_pods
+      retries: 20
+      delay: 15
+      until: calico_pods.rc == 0
